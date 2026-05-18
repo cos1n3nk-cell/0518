@@ -3,47 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 手勢辨識測試</title>
+    <title>AI 剪刀石頭布 - 霓虹科技版</title>
 
-    <!-- 1. 這裡放老師給你的 MediaPipe 套件 -->
+    <!-- 載入 MediaPipe 核心套件 -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        /* 全域賽博朋克黑風格 */
+        body {
+            background-color: #050508;
+            color: #ffffff;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 整個網頁的主外框：發光邊框效果 */
+        .game-container {
+            position: relative;
+            width: 900px;
+            height: 550px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 3px solid #00d2ff;
+            border-radius: 16px;
+            box-shadow: 0 0 20px #00d2ff, inset 0 0 15px rgba(0, 210, 255, 0.3);
+            display: flex;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 左側：攝影機區塊（圓形科技感外框） */
+        .video-box {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            border: 4px solid #bd00ff;
+            box-shadow: 0 0 25px #bd00ff;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        video {
+            width: 130%;
+            height: 130%;
+            object-fit: cover;
+            transform: scaleX(-1); /* 鏡像翻轉 */
+        }
+
+        /* 右側：遊戲互動與選單區 */
+        .display-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 30px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #00d2ff, 0 0 20px #00d2ff;
+        }
+
+        /* 遊戲結束選單區塊 */
+        .menu-container {
+            width: 100%;
+            background: rgba(5, 5, 10, 0.8);
+            border: 2px solid #ff0077;
+            border-radius: 12px;
+            padding: 15px;
+            box-sizing: border-box;
+            box-shadow: 0 0 15px rgba(255, 0, 119, 0.4);
+            text-align: center;
+        }
+
+        .menu-title {
+            color: #ffcc00;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 0 5px #ffcc00;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        /* 選單按鈕樣式 */
+        .menu-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            background: transparent;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        /* 繼續遊戲（綠色發光） */
+        .btn-continue {
+            border: 2px solid #00ff66;
+            color: #00ff66;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+        }
+        /* 結束遊戲（紅色發光） */
+        .btn-exit {
+            border: 2px solid #ff3333;
+            color: #ff3333;
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.2);
+        }
+
+        /* 按鈕內部的動態進度條背景 */
+        .progress-bar {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            height: 6px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .btn-continue .progress-bar { background-color: #00ff66; box-shadow: 0 0 10px #00ff66; }
+        .btn-exit .progress-bar { background-color: #ff3333; box-shadow: 0 0 10px #ff3333; }
+
+        /* 狀態文字提示 */
+        #status-text {
+            font-size: 18px;
+            color: #00d2ff;
+            text-shadow: 0 0 5px #00d2ff;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>AI 手勢辨識測試畫面</h1>
-    <!-- 2. 用來顯示攝影機畫面的標籤 -->
-    <video id="webcam" autoplay playsinline style="width: 640px; height: 480px; transform: scaleX(-1);"></video>
+    <div class="game-container">
+        <!-- 左側：視訊畫面 -->
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+            <div class="video-box">
+                <video id="webcam" autoplay playsinline></video>
+            </div>
+            <div id="status-text">系統初始化中...</div>
+        </div>
 
+        <!-- 右側：控制面板與選單 -->
+        <div class="display-panel">
+            <h1>AI Hand Gesture RPS</h1>
+            
+            <div style="font-size: 24px; color: #ffcc00; text-align: center;">
+                [ 遊戲主畫面區域 ]<br>
+                <span style="font-size: 16px; color: #aaa;">(此處可對接你原本的剪刀石頭布對決邏輯)</span>
+            </div>
+
+            <!-- 核心：繼續/結束選單 -->
+            <div class="menu-container">
+                <div class="menu-title">🎮 GAME OVER MENU 🎮</div>
+                <div class="btn-group">
+                    <!-- 繼續按鈕 -->
+                    <div class="menu-btn btn-continue" id="btn-open">
+                        RESTART GAME
+                        <div style="font-size: 12px; margin-top: 5px; color: #fff;">✋ 張開手掌 2 秒</div>
+                        <div class="progress-bar" id="progress-open"></div>
+                    </div>
+                    <!-- 結束按鈕 -->
+                    <div class="menu-btn btn-exit" id="btn-fist">
+                        EXIT GAME
+                        <div style="font-size: 12px; margin-top: 5px; color: #fff;">✊ 握拳靜止 2 秒</div>
+                        <div class="progress-bar" id="progress-fist"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邏輯控制 Script -->
     <script>
-        // 3. 這裡寫啟動攝影機的 JavaScript 程式碼
         const videoElement = document.getElementById('webcam');
+        const statusText = document.getElementById('status-text');
+        const progressOpen = document.getElementById('progress-open');
+        const progressFist = document.getElementById('progress-fist');
 
-        // 建立 MediaPipe Hands 物件
-        // 建立 MediaPipe Hands 物件
-const hands = new Hands({
-    // 💡 確保這裡的網址是完整的 jsDelivr 網址，讓它能正確下載 .wasm 和 .data 模型檔案
-    locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
-    }
-});
+        // 方案 B 核心變數設定
+        let openHandFrames = 0;
+        let fistFrames = 0;
+        const TRIGGER_FRAMES = 60; // 為了在網頁上測試流暢，這裡設為連續偵測到 60 幀觸發（約 1.5~2秒）
+        let isGameOverMenu = true;  // 預設開啟選單供你測試
 
-// 設定辨識參數
-hands.setOptions({
-    maxNumHands: 1,                  // 只偵測一隻手（比較省效能，不易卡頓）
-    modelComplexity: 1,              // 模型複雜度：1 兼顧速度與準確度
-    minDetectionConfidence: 0.5,     // 偵測信心度門檻
-    minTrackingConfidence: 0.5       // 追蹤信心度門檻
-});
-
-        // 當偵測到手部邏輯時要做的事（先確認有沒有在跑）
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                console.log("偵測到手了！數據在這裡：", results.multiHandLandmarks);
-            }
+        // 1. 初始化 MediaPipe Hands
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`
         });
 
-        // 啟動相機並連結到 MediaPipe
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
+        });
+
+        hands.onResults(onResults);
+
+        // 2. 啟動攝影機
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({ image: videoElement });
@@ -53,8 +225,88 @@ hands.setOptions({
         });
         
         camera.start()
-            .then(() => console.log("攝影機啟動成功！"))
-            .catch(err => alert("攝影機啟動失敗，請檢查權限：" + err));
+            .then(() => statusText.innerText = "📷 攝影機已啟動，請伸出手掌控制選單")
+            .catch(err => statusText.innerText = "錯誤: 無法取得相機權限");
+
+        // 3. 判斷手勢邏輯（張開手掌 / 握拳）
+        function checkHandGesture(landmarks) {
+            let openFingersCount = 0;
+
+            // 食指、中指、無名指、小指
+            if (landmarks[8].y < landmarks[6].y) openFingersCount++;
+            if (landmarks[12].y < landmarks[10].y) openFingersCount++;
+            if (landmarks[16].y < landmarks[14].y) openFingersCount++;
+            if (landmarks[20].y < landmarks[18].y) openFingersCount++;
+
+            if (openFingersCount >= 4) return "open";  // 伸直 4 根手指以上 = 張開
+            if (openFingersCount <= 1) return "fist";  // 伸直 1 根以下 = 握拳
+            return "none";
+        }
+
+        // 4. 接收辨識結果並處理計時
+        function onResults(results) {
+            if (!isGameOverMenu) return;
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                let landmarks = results.multiHandLandmarks[0];
+                let currentGesture = checkHandGesture(landmarks);
+
+                if (currentGesture === "open") {
+                    openHandFrames++;
+                    fistFrames = 0;
+                    statusText.innerText = "✋ 偵測到【張開手掌】，請維持住...";
+                } else if (currentGesture === "fist") {
+                    fistFrames++;
+                    openHandFrames = 0;
+                    statusText.innerText = "✊ 偵測到【握拳】，請維持住...";
+                } else {
+                    resetCounters();
+                    statusText.innerText = "🔎 請比出【張開手掌】或【握拳】";
+                }
+
+                // 更新選單按鈕的動態發光進度條
+                let openProgress = (openHandFrames / TRIGGER_FRAMES) * 100;
+                let fistProgress = (fistFrames / TRIGGER_FRAMES) * 100;
+                progressOpen.style.width = `${Math.min(openProgress, 100)}%`;
+                progressFist.style.width = `${Math.min(fistProgress, 100)}%`;
+
+                // 檢查是否達到觸發門檻
+                if (openHandFrames >= TRIGGER_FRAMES) {
+                    triggerAction("RESTART");
+                } else if (fistFrames >= TRIGGER_FRAMES) {
+                    triggerAction("EXIT");
+                }
+            } else {
+                // 畫面上沒手，進度條跟計時歸零
+                resetCounters();
+                statusText.innerText = "👋 請將手置於視訊畫面中";
+            }
+        }
+
+        function resetCounters() {
+            openHandFrames = 0;
+            fistFrames = 0;
+            progressOpen.style.width = "0%";
+            progressFist.style.width = "0%";
+        }
+
+        // 5. 觸發成功的事件
+        function triggerAction(actionType) {
+            isGameOverMenu = false; // 關閉選單防止重複觸發
+            resetCounters();
+
+            if (actionType === "RESTART") {
+                statusText.innerText = "🚀 觸發成功：重新開始遊戲！";
+                alert("🎉 觸發成功：即將重新開始遊戲！");
+                // 這裡可以呼叫你原本遊戲重啟的程式碼
+                setTimeout(() => { isGameOverMenu = true; }, 2000); // 2秒後自動重啟選單供測試
+            } else if (actionType === "EXIT") {
+                statusText.innerText = "❌ 觸發成功：結束遊戲！";
+                alert("🚪 觸發成功：遊戲已結束！");
+                // 這裡可以呼叫你原本關閉或顯示結算畫面的程式碼
+                setTimeout(() => { isGameOverMenu = true; }, 2000);
+            }
+        }
     </script>
 </body>
 </html>
