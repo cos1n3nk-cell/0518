@@ -1,0 +1,12 @@
+canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 10; /* 數字大於 video 才會顯示在最上層 */
+}
+video {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+}
