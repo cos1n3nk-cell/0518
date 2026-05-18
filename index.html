@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 手勢辨識測試</title>
+
+    <!-- 1. 這裡放老師給你的 MediaPipe 套件 -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <h1>AI 手勢辨識測試畫面</h1>
+    <!-- 2. 用來顯示攝影機畫面的標籤 -->
+    <video id="webcam" autoplay playsinline style="width: 640px; height: 480px; transform: scaleX(-1);"></video>
+
+    <script>
+        // 3. 這裡寫啟動攝影機的 JavaScript 程式碼
+        const videoElement = document.getElementById('webcam');
+
+        // 建立 MediaPipe Hands 物件
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        // 當偵測到手部邏輯時要做的事（先確認有沒有在跑）
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                console.log("偵測到手了！數據在這裡：", results.multiHandLandmarks);
+            }
+        });
+
+        // 啟動相機並連結到 MediaPipe
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+        
+        camera.start()
+            .then(() => console.log("攝影機啟動成功！"))
+            .catch(err => alert("攝影機啟動失敗，請檢查權限：" + err));
+    </script>
+</body>
+</html>
