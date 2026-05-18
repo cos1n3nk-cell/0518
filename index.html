@@ -20,16 +20,21 @@
         const videoElement = document.getElementById('webcam');
 
         // 建立 MediaPipe Hands 物件
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+        // 建立 MediaPipe Hands 物件
+const hands = new Hands({
+    // 💡 確保這裡的網址是完整的 jsDelivr 網址，讓它能正確下載 .wasm 和 .data 模型檔案
+    locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
+    }
+});
 
-        hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
+// 設定辨識參數
+hands.setOptions({
+    maxNumHands: 1,                  // 只偵測一隻手（比較省效能，不易卡頓）
+    modelComplexity: 1,              // 模型複雜度：1 兼顧速度與準確度
+    minDetectionConfidence: 0.5,     // 偵測信心度門檻
+    minTrackingConfidence: 0.5       // 追蹤信心度門檻
+});
 
         // 當偵測到手部邏輯時要做的事（先確認有沒有在跑）
         hands.onResults((results) => {
